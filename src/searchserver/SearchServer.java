@@ -5,6 +5,9 @@
  */
 package searchserver;
 
+import java.util.logging.Handler;
+import java.util.logging.LogRecord;
+
 
 
 /**
@@ -12,7 +15,7 @@ package searchserver;
  * @author roy
  */
 public class SearchServer {
-
+    
     static private int S = 10;
     static private int C = 40;
     static private int M = 5;
@@ -31,7 +34,7 @@ public class SearchServer {
         }
         
         //ServerSock ss = new ServerSock();
-        ServerSock ss = new ServerSock();
+        ServerSock ss = new ServerSock(S);
         (new Thread(ss)).start();
 
     }
@@ -48,6 +51,25 @@ public class SearchServer {
         System.out.println("Wrong Parameters! should use: java -jar SearchServer <sTheardNum> <C sizeOfCatch> <M least num for catch> <L range mising replies> <Y num readingThreads>");
         System.out.println("Using defalt: java -jar All_Cliques 10, 40, 5, 100, 10");
     }
+    
+    private final Handler handler = new Handler() {
+
+        @Override
+        public void publish(LogRecord record) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public void flush() {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        @Override
+        public void close() throws SecurityException {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+        
+    };
 
    
 
