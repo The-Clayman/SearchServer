@@ -82,7 +82,7 @@ public class Cache {
         }
 
         private int getYbyX(int x) {
-            return mapX.get(x).getZ();
+            return mapX.get(x).getY();
         }
     }
 
