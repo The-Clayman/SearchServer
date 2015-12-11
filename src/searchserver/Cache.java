@@ -7,36 +7,43 @@ package searchserver;
 
 import java.util.ArrayList;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.Stack;
 import java.util.TreeMap;
-import java.util.Vector;
+
 
 /**
  *
  * @author roy
  */
 public class Cache {
-
+    int size;
+    myTree tree;
     public Cache(int size) {
-
+        this.size = size;
+        tree = new myTree(size);
+    }
+    public void insert(int x,int y,int z){
+        tree.insert(x, y, z);
     }
 
-    public class myTree {
+    private class myTree {
 
         TreeMap<Integer, set> mapX;
-        TreeMap<Integer, Stack<Integer>> mapZ;
+        TreeMap<Integer, ArrayList<Integer>> mapZ;
         int size;
 
         public myTree(int size) {
             mapX = new TreeMap<Integer, set>();
-            mapZ = new TreeMap<Integer, Stack<Integer>>();
+            mapZ = new TreeMap<Integer, ArrayList<Integer>>();
             this.size = size;
+        }
+        public int getLowZValue(){
+            return this.mapZ.firstKey();
         }
 
         public void insert(int x, int y, int z) {
-            if (mapX.size() == size) {// if full
-                rempveLowZ();// removes one low Z elemnt
+            if (mapX.size() == size && mapX.get(x) == null) {// if full and a not updating exsiting set
+                if (z <= this.getLowZValue()) return; // The cache is full, the new entry has z<= from lowest z value in cache. do nothing
+                removeLowZ();// removes one low Z elemnt
             }
 
             if (mapX.get(x) == null) {// x does not exsist yet
@@ -47,20 +54,29 @@ public class Cache {
                 if (mapX.get(x).getY() == y) {
                     int delZ = mapX.get(x).getZ();
                     mapX.get(x).setZ(z);
-                    mapZ.get(delZ).remove(x);
+                    int XvectorIndex = mapZ.get(delZ).indexOf(x);
+                    if (mapZ.get(delZ).size() == 1){// ArrayList contains only one value. remove all node
+                        mapZ.remove(delZ);
+                        addXtoZ(x,z);// add X to the new Z value
+                    }
+                    else{// ArrayList contains more than one vlaue. remove X from Vector
+                    mapZ.get(delZ).remove(XvectorIndex);
                     addXtoZ(x,z);
+                    }
+
 
                 } else {
                     //error, y does not match
+                    System.out.println("cache Error:insert, x exsist, y does not match old Y ");
                 }
             }
 
         }
 
         private void addXtoZ(int x, int z) {
-            Stack<Integer> temp;
+            ArrayList<Integer> temp;
             if (mapZ.get(z) == null) {// z size does not exsist. adds new z;
-                temp = new Stack<Integer>();
+                temp = new ArrayList<Integer>();
                 temp.add(x);
                 mapZ.put(z, temp);
             }
@@ -69,19 +85,23 @@ public class Cache {
             }
         }
 
-        private void rempveLowZ() {
-            Entry<Integer, Stack<Integer>> del = mapZ.firstEntry();
+        private void removeLowZ() {
+            Entry<Integer, ArrayList<Integer>> del = mapZ.firstEntry();
             if (del.getValue().size() == 1) {// only one x in this Z size, remove all Z entry
-                int Xdel = del.getValue().firstElement();
+                //int Xdel = del.getValue().firstElement();
+                int Xdel = del.getValue().get(0);
                 mapZ.remove(del.getKey());
                 mapX.remove(Xdel);
+                
             } else {// more than one x in this Z size, remove first X
-                int Xdel = del.getValue().pop();
+                int Xdel = del.getValue().get(0);
+                mapZ.firstEntry().getValue().remove(0);
+              //  del.getValue().remove(Xdel);
                 mapX.remove(Xdel);
             }
         }
 
-        private int getYbyX(int x) {
+        public int getYbyX(int x) {
             return mapX.get(x).getY();
         }
     }
