@@ -16,11 +16,13 @@ import java.util.logging.LogRecord;
  */
 public class SearchServer {
     
-    static private int S = 10;
-    static private int C = 40;
-    static private int M = 5;
-    static private int L = 100;
-    static private int Y = 10;
+    public static int S = 10;
+    public static int C = 40;
+    public static int M = 5;
+    public static int L = 100;
+    public static int Y = 10;
+    public static int W = 1;
+    
 
     /**
      * @param args the command line arguments
@@ -34,8 +36,9 @@ public class SearchServer {
         }
         
         //ServerSock ss = new ServerSock();
-        ServerSock ss = new ServerSock(S);
-        (new Thread(ss)).start();
+        ServerOp op = new ServerOp();
+        op.GO();
+        
 
     }
 

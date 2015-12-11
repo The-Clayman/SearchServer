@@ -11,7 +11,6 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.StringTokenizer;
 import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -23,15 +22,15 @@ import java.util.logging.Logger;
 class ServerSock implements Runnable {
 
     ServerSocket Ssocket;
-    ThreadPoolWorkers sTherads;// = new ThreadPoolWorkers(S);
-    int S;
+    
+    
+ 
     
     Vector<conSock> clientSockets;
     final int port = 18524;
 
-    public ServerSock(int S) {
-         this.S = S;
-         sTherads = new ThreadPoolWorkers(this.S);
+    public ServerSock() {
+        
     }
 
     @Override
@@ -110,18 +109,38 @@ class ServerSock implements Runnable {
         }
         private void analizeMsg(String msg){
           //  StringTokenizer tok = new StringTokenizer(msg);
-            System.out.println(msg);
+            System.out.println("x-"+msg+"received");
+            SearchTask searchTask;
+            searchTask = new SearchTask(Integer.parseInt(msg));
+            ServerOp.s_ThreadPool.enqueue(searchTask);
+            
             
         }
+        public void write(String msg){
+            out.println(msg);
+            out.flush();
+        }
+         public class SearchTask implements Runnable {
 
-    }
-    private class SearchTask implements Runnable{
+        int x;
+
+        public SearchTask(int x) {
+            this.x = x;
+        }
 
         @Override
         public void run() {
             
+                int ans = ServerOp.df.query(x);
+                write(new Integer(ans).toString());
+                
+            
         }
-        
     }
+
+    }
+   
+
+    
 
 }
