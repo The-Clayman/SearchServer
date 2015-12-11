@@ -22,6 +22,7 @@ public class SearchServer {
     public static int L = 100;
     public static int Y = 10;
     public static int W = 1;
+    public static int C_num = 1;
     
 
     /**

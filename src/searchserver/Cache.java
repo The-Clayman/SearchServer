@@ -17,12 +17,16 @@ import java.util.TreeMap;
 public class Cache {
     int size;
     myTree tree;
+    int lowZ = 0;
     public Cache(int size) {
         this.size = size;
         tree = new myTree(size);
     }
     public void insert(int x,int y,int z){
         tree.insert(x, y, z);
+    }
+    public int QueryX(int x){
+        return tree.getYbyX(x);
     }
 
     private class myTree {
@@ -67,7 +71,7 @@ public class Cache {
 
                 } else {
                     //error, y does not match
-                    System.out.println("cache Error:insert, x exsist, y does not match old Y ");
+                    System.err.println("cache Error:insert, x exsist, y does not match old Y ");
                 }
             }
 
@@ -101,7 +105,8 @@ public class Cache {
             }
         }
 
-        public int getYbyX(int x) {
+        private int getYbyX(int x) {
+            if (mapX.get(x) == null) return -1;
             return mapX.get(x).getY();
         }
     }
