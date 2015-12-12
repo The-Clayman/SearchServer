@@ -126,7 +126,7 @@ class ServerSock implements Runnable {
             int x;
             Integer yCache = -6;
             final Object lock = new Object();
-            Object yDB = -6;
+            int yDB = -6;
 
             public SearchTask(int x) {
                 this.x = x;
@@ -145,13 +145,8 @@ class ServerSock implements Runnable {
                         int ans = this.yCache;
                         if (ans != -1) {// y exsist in cache. write back answer
                             write(new Integer(ans).toString());
-                            // write z++ to data base; chache will updated as well later;
-                          
-                            
-                            ServerOp.w_ThreadPool.enqueue(new writeDBTask(x, ans, -5, this , null));// -5 means incremetZ and updating cashe
-                            
-                            
-                            
+                            // write z++ to data base; chache will updated as well later;   
+                            ServerOp.w_ThreadPool.enqueue(new writeDBTask(x, ans, -5, this , true));// -5 means incremetZ and updating cashe    
                             // notify cach; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                             return;
                         }
@@ -170,23 +165,21 @@ class ServerSock implements Runnable {
                     } catch (InterruptedException ex) {
                         Logger.getLogger(ServerSock.class.getName()).log(Level.SEVERE, null, ex);
                     }
-                    Object object = this.yDB;
-                    if (object instanceof CountDownLatch) {// x doesnt exsit in db. halt readers until x will be added to db
-                        int genratedY = GenY();
-                        CountDownLatch latch = (CountDownLatch) object;
+                    int yDb = this.yDB;
+                    if (yDb == -2 || yDb == -3 || yDb == -4) {// x doesnt exsit in db.readers halted until x will be added to db
+                        int generatedY = GenY();
                         // lock the file untill new enrty will be written
-                        write(new Integer(genratedY).toString());
-                        ServerOp.w_ThreadPool.enqueue(new writeDBTask(x, genratedY, 2, this , latch));// write new y the DB
+                        write(new Integer(generatedY).toString());// send Generated Y to client;
+                        ServerOp.w_ThreadPool.enqueue(new writeDBTask(x, generatedY, 1, this,true ));// write generated Y the DB
                         // notify cach; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                         
                         
                         return;
                     }
 
-                    int returnedY = (Integer) object;
 
-                    if (returnedY != -1 && returnedY != -3 && returnedY != -4) {//y was found in Db. send y back to client
-                        write(new Integer(returnedY).toString());
+                    if (yDb != -1 && yDb != -3 && yDb != -4 && yDb !=-2) {//y was found in Db. send y back to client
+                        write(new Integer(yDb).toString());
                         // write z++ to data base;
                         
                         
@@ -236,8 +229,8 @@ class ServerSock implements Runnable {
             @Override
             public void run() {
                 synchronized (sThread.lock) {
-                    Object ans = ServerOp.df.query(x);
-                    sThread.yDB = ans;// return latch if new entry needed to be added
+                    int ans = ServerOp.df.query(x);
+                    sThread.yDB = ans;
                     sThread.lock.notify();
                 }
             }
@@ -248,15 +241,15 @@ class ServerSock implements Runnable {
             int x;
             int y;
             int z;
+            boolean isPrivilege;
             SearchTask sThread;
-            CountDownLatch latch;
 
-            public writeDBTask(int x, int y, int z, SearchTask sThread , CountDownLatch latch) {
+            public writeDBTask(int x, int y, int z, SearchTask sThread ,  boolean isPrivilege) {
                 this.x = x;
                 this.sThread = sThread;
                 this.y = y;
                 this.z = z;
-                this.latch = latch;
+                this.isPrivilege = isPrivilege;
             }
 
             @Override
@@ -266,11 +259,7 @@ class ServerSock implements Runnable {
                     return;
                 }// write new qwery to database
                 ServerOp.df.writeNewEntry(x, y);
-                if (this.latch != null){
-                    System.out.println("latch free\n"+latch);
-                    latch.countDown();
-                    System.out.println("latch free\n"+latch);
-                }
+               
 
             }
         }

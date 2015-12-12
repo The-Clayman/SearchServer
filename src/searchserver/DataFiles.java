@@ -29,7 +29,7 @@ public class DataFiles {
         this.l = l;
     }
 
-    public Object query(int x) {
+    public int query(int x) {
         int ans = -1;
         int fileNum = x / divitionFactor;
         int location = x % divitionFactor;
@@ -43,56 +43,50 @@ public class DataFiles {
             file = files.get(fileNum);
             if (file == null) {
                 System.err.println("query(int x): file " + fileNum + " is null");
-                return -3; // -3 means x doesn't exist
+                return -2; // -2 means x doesn't exist
 
             }
         } catch (IndexOutOfBoundsException e) {
-//            RandomAccessFile random = new RandomAccessFile(fileNum + ".dat", "rw");
-//            fillFileJunk(random);
-//            if (files.size() <= fileNum) {// add missing spaces in fiels. empty one will be filled with null;
-//                for (int i = files.size(); i <= fileNum; i++) {
-//                    files.add(null);
-//                }
-//            }
-//            files.add(new FileLockSet(random));
+            FileLockSet fileToAdd;
             for (int i = files.size(); i <= fileNum; i++) {
                 RandomAccessFile random;
                 try {
                     random = new RandomAccessFile(i + ".dat", "rw");
 
                     fillFileJunk(random);
-                    FileLockSet fileToAdd = new FileLockSet(random);
+                    fileToAdd = new FileLockSet(random);
                     files.add(fileToAdd); //00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-                    return fileToAdd.latch;// sends back latch. for realeasing latch after writing missing x
+                    if (i == fileNum){
+                        fileToAdd.wait = true;// lock reading until new entry will be written
+                    }
+                    
                 } catch (FileNotFoundException ex) {
                     Logger.getLogger(DataFiles.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
-
+            
+            return -3;// file not found. return -3 for anitiate writing mising entry
         }
         try {
-
-            file.latch.await();// stops all reading threads incase new entry needed to be added
-
-            synchronized (file.lock) {
+            synchronized (file.mainLock) {
+                while (file.wait) {
+                    file.mainLock.wait();// block all reading threads if there's a writing task needed to be done
+                }
                 int pointer = location * 4 * 3;
                 file.file.seek(pointer);
                 readX = file.file.readInt();
                 readY = file.file.readInt();
 
-//            if (x != readX) {
-//            //    System.err.println("error ecore DataBase.query(int x), x!=readX");
-//                return -4;
-//            }
                 if (readY == -1) {// if query doesn't exsist in DB
                     // halt all readers
-                    if (file.latch.getCount() == 0) {
-                        file.latch = new CountDownLatch(1);
+                    file.wait = true;
+                    return -4;
                     }
-                    return file.latch;
-                } else {// send back y
+                    
+                 else {// send back y
                     ans = readY;
-                    //file.latch.countDown();// free the latch. now need to write new entry;
+                    file.mainLock.notify();// wake up next thread
+                    return readY;
                 }
             }
 
@@ -120,15 +114,20 @@ public class DataFiles {
                 System.err.println("writeNewEntry(int x, int y): file " + fileNum + " is null");
                 return;
             }
-            synchronized (file.lock) {
-                // write new entry in position
-                file.file.seek(pointer);
-                file.file.writeInt(x);
-                file.file.writeInt(y);
-                file.file.writeInt(1);
-                if (file.latch != null) {
-                    file.latch.countDown();
+            synchronized (file.privilegeLock) {
+                synchronized (file.mainLock) {
+                    // write new entry in position
+                    file.file.seek(pointer);
+                    file.file.writeInt(x);
+                    file.file.writeInt(y);
+                    file.file.writeInt(1);
+
+                    file.wait = false;
+                    file.mainLock.notify();// writing complite, release lock for read threads
                 }
+
+               
+
             }
         } catch (IndexOutOfBoundsException e) {
             System.err.println("writeNewEntry(int x, int y): file " + fileNum + " out of bounds");
@@ -139,8 +138,7 @@ public class DataFiles {
         } catch (IOException ex) {
             Logger.getLogger(DataFiles.class.getName()).log(Level.SEVERE, null, ex);
         }
-//        if (file.latch != null)
-//        file.latch.countDown();
+
     }
 
     public void incrementZ(int x) {
@@ -152,7 +150,7 @@ public class DataFiles {
         int readZ;
         file = files.get(fileNum);
         try {
-            synchronized (file.lock) {
+            synchronized (file.mainLock) {
                 file.file.seek(pointer);
                 readX = file.file.readInt();
                 if (readX != x) {
@@ -201,13 +199,17 @@ public class DataFiles {
     private class FileLockSet {
 
         RandomAccessFile file;
-        Object lock;
-        CountDownLatch latch;
+        Object mainLock;
+        Object privilegeLock;
+        boolean wait;
+        //      CountDownLatch latch;
 
         private FileLockSet(RandomAccessFile file) {
             this.file = file;
-            lock = new Object();
-            latch = new CountDownLatch(1);
+            mainLock = new Object();
+            privilegeLock = new Object();
+            wait = false;
+            //      latch = new CountDownLatch(1);
         }
     }
 
