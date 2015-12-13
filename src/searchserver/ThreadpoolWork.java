@@ -13,11 +13,11 @@ import java.util.logging.Logger;
  *
  * @author roy
  */
-public class R_ThreadPool {
-     private WorkerThread[] threads;
+public class ThreadpoolWork {
+    private WorkerThread[] threads;
     private LinkedList<Runnable> taskQueue;
     
-    public R_ThreadPool(int threadNumber){
+    public ThreadpoolWork(int threadNumber){
         taskQueue = new LinkedList<Runnable>();
         threads = new WorkerThread[threadNumber];
         for (int i = 0; i < threads.length ; i++){
@@ -43,7 +43,7 @@ public class R_ThreadPool {
                        try {
                            taskQueue.wait();
                        } catch (InterruptedException ex) {
-                           Logger.getLogger(ThreadPoolWorkers.class.getName()).log(Level.SEVERE, null, ex);
+                           Logger.getLogger(ThreadpoolWork.class.getName()).log(Level.SEVERE, null, ex);
                        }
                    }
                    r = (Runnable) taskQueue.removeFirst();
@@ -53,5 +53,4 @@ public class R_ThreadPool {
        }
         
     }
-  
 }

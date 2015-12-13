@@ -29,8 +29,8 @@ public class DataFiles {
         this.l = l;
     }
 
-    public int query(int x) {
-        int ans = -1;
+    public int[] query(int x) {
+        int ans[] = new int[2];
         int fileNum = x / divitionFactor;
         int location = x % divitionFactor;
         int readX;
@@ -43,7 +43,8 @@ public class DataFiles {
             file = files.get(fileNum);
             if (file == null) {
                 System.err.println("query(int x): file " + fileNum + " is null");
-                return -2; // -2 means x doesn't exist
+                ans[0]=-2;
+                return ans; // -2 means x doesn't exist
 
             }
         } catch (IndexOutOfBoundsException e) {
@@ -64,8 +65,8 @@ public class DataFiles {
                     Logger.getLogger(DataFiles.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
-            
-            return -3;// file not found. return -3 for anitiate writing mising entry
+            ans[0] = -3;
+            return ans;// file not found. return -3 for anitiate writing mising entry
         }
         try {
             synchronized (file.mainLock) {
@@ -76,17 +77,20 @@ public class DataFiles {
                 file.file.seek(pointer);
                 readX = file.file.readInt();
                 readY = file.file.readInt();
+                readZ = file.file.readInt();
 
                 if (readY == -1) {// if query doesn't exsist in DB
                     // halt all readers
                     file.wait = true;
-                    return -4;
+                     ans[0] = -4;
+                    return ans;
                     }
                     
                  else {// send back y
-                    ans = readY;
+                    ans[0] = readY;
+                    ans[1] = readZ;
                     file.mainLock.notify();// wake up next thread
-                    return readY;
+                    return ans;
                 }
             }
 
@@ -95,7 +99,6 @@ public class DataFiles {
         } catch (InterruptedException ex) {
             Logger.getLogger(DataFiles.class.getName()).log(Level.SEVERE, null, ex);
         }
-        //   file.latch.countDown();
         return ans;
     }
 
@@ -108,9 +111,7 @@ public class DataFiles {
             //     testFill(); //TEST           $%^$%^$%^$%^%$^$%^
             file = files.get(fileNum);
             if (file == null) {// if pointer exist, but is null
-//                RandomAccessFile emptyFileToAsign = new RandomAccessFile(fileNum + ".dat", "rw");
-//                fillFileJunk(emptyFileToAsign);
-//                files.set(fileNum, new FileLockSet(emptyFileToAsign));
+
                 System.err.println("writeNewEntry(int x, int y): file " + fileNum + " is null");
                 return;
             }

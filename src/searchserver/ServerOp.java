@@ -11,25 +11,29 @@ package searchserver;
  */
 public class ServerOp {
     ServerSock ss;
-    public static S_ThreadPool s_ThreadPool;
-    public static W_ThreadPool w_ThreadPool;
-    public static R_ThreadPool r_ThreadPool;
-    public static C_ThreadPoolSearch c_ThreadPool;
+    public static ThreadpoolWork s_ThreadPool;
+    public static ThreadpoolWork w_ThreadPool;
+    public static ThreadpoolWork r_ThreadPool;
+    public static ThreadpoolWork c_ThreadPool;
+    public static ThreadpoolWork c_updatePool;
     public static DataFiles df;
     public static Cache cache;
+    public static UpdatingList UP;
     public ServerOp(){
         
     }
     public void GO(){
-        ss = new ServerSock();
-        (new Thread(ss)).start();
+        
         df = new DataFiles(SearchServer.S, SearchServer.L);
         cache = new Cache(SearchServer.C);
-        s_ThreadPool = new S_ThreadPool(SearchServer.S);
-        r_ThreadPool = new R_ThreadPool(SearchServer.Y);
-        w_ThreadPool = new W_ThreadPool(SearchServer.W);
-        c_ThreadPool = new C_ThreadPoolSearch(SearchServer.C_num);
-        
+        s_ThreadPool = new ThreadpoolWork(SearchServer.S);
+        r_ThreadPool = new ThreadpoolWork(SearchServer.Y);
+        w_ThreadPool = new ThreadpoolWork(SearchServer.W);
+        c_ThreadPool = new ThreadpoolWork(SearchServer.C_num);
+        c_updatePool = new ThreadpoolWork(SearchServer.updatingNum);
+        UP = new UpdatingList(SearchServer.M);
+        ss = new ServerSock();
+        (new Thread(ss)).start();
     }
     
     

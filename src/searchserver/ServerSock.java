@@ -15,6 +15,7 @@ import java.util.Vector;
 import java.util.concurrent.CountDownLatch;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import static searchserver.ServerOp.c_updatePool;
 
 /**
  *
@@ -125,8 +126,10 @@ class ServerSock implements Runnable {
 
             int x;
             Integer yCache = -6;
+            int zCache = -6;
             final Object lock = new Object();
             int yDB = -6;
+            int zDB = -6;
 
             public SearchTask(int x) {
                 this.x = x;
@@ -134,20 +137,20 @@ class ServerSock implements Runnable {
 
             @Override
             public void run() {
-
-//                int ans = ServerOp.df.query(x);
-//                write(new Integer(ans).toString());
                 synchronized (this.lock) {
 
                     try {
                         ServerOp.c_ThreadPool.enqueue(new QueryCacheTask(x, this));
                         this.lock.wait();
-                        int ans = this.yCache;
-                        if (ans != -1) {// y exsist in cache. write back answer
-                            write(new Integer(ans).toString());
-                            // write z++ to data base; chache will updated as well later;   
-                            ServerOp.w_ThreadPool.enqueue(new writeDBTask(x, ans, -5, this , true));// -5 means incremetZ and updating cashe    
+                        int Yans = this.yCache;
+                        int Zans = this.zCache;
+                        if (Yans != -1) {// y exsist in cache. write back answer
+                            write(new Integer(Yans).toString());
+                            // write z++ to data base; chache will updated as well later;  
+                            //ServerOp.UP.incrementZ(x, Yans, Zans);
+                            
                             // notify cach; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                            ServerOp.c_updatePool.enqueue(new ZincrementToUpdateTask(x, Yans, Zans,this));
                             return;
                         }
                     } catch (InterruptedException ex) {
@@ -166,27 +169,25 @@ class ServerSock implements Runnable {
                         Logger.getLogger(ServerSock.class.getName()).log(Level.SEVERE, null, ex);
                     }
                     int yDb = this.yDB;
+                    int zDb = this.zDB;
                     if (yDb == -2 || yDb == -3 || yDb == -4) {// x doesnt exsit in db.readers halted until x will be added to db
                         int generatedY = GenY();
                         // lock the file untill new enrty will be written
                         write(new Integer(generatedY).toString());// send Generated Y to client;
-                        ServerOp.w_ThreadPool.enqueue(new writeDBTask(x, generatedY, 1, this,true ));// write generated Y the DB
+                        ServerOp.w_ThreadPool.enqueue(new writeDBTask(x, generatedY, 1, this, true));// write generated Y the DB
                         // notify cach; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                        
-                        
+                        ServerOp.c_updatePool.enqueue(new ZincrementToUpdateTask(x, generatedY, zDb,this));
+
                         return;
                     }
 
-
-                    if (yDb != -1 && yDb != -3 && yDb != -4 && yDb !=-2) {//y was found in Db. send y back to client
+                    if (yDb != -1 && yDb != -3 && yDb != -4 && yDb != -2) {//y was found in Db. send y back to client
                         write(new Integer(yDb).toString());
                         // write z++ to data base;
-                        
-                        
+
                        // ServerOp.w_ThreadPool.enqueue(new writeDBTask(x, returnedY, -5, this , null));//  incremetZ
-                        
-                        
                         // notify cach; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                        ServerOp.c_updatePool.enqueue(new ZincrementToUpdateTask(x, yDb, zDb,this));
                         return;
                     }
                     // y not found, generate y, send it back;
@@ -209,8 +210,9 @@ class ServerSock implements Runnable {
             @Override
             public void run() {
                 synchronized (sThread.lock) {
-                    int ans = ServerOp.cache.QueryX(x);
-                    sThread.yCache = ans;
+                    int []ans = ServerOp.cache.QueryX(x);
+                    sThread.yCache = ans[0];
+                    sThread.zCache = ans[1];
                     sThread.lock.notify();
                 }
             }
@@ -229,8 +231,9 @@ class ServerSock implements Runnable {
             @Override
             public void run() {
                 synchronized (sThread.lock) {
-                    int ans = ServerOp.df.query(x);
-                    sThread.yDB = ans;
+                    int ans[] = ServerOp.df.query(x);
+                    sThread.yDB = ans[0];
+                    sThread.zDB = ans[1];
                     sThread.lock.notify();
                 }
             }
@@ -244,7 +247,7 @@ class ServerSock implements Runnable {
             boolean isPrivilege;
             SearchTask sThread;
 
-            public writeDBTask(int x, int y, int z, SearchTask sThread ,  boolean isPrivilege) {
+            public writeDBTask(int x, int y, int z, SearchTask sThread, boolean isPrivilege) {
                 this.x = x;
                 this.sThread = sThread;
                 this.y = y;
@@ -259,7 +262,28 @@ class ServerSock implements Runnable {
                     return;
                 }// write new qwery to database
                 ServerOp.df.writeNewEntry(x, y);
-               
+
+            }
+        }
+
+        public class ZincrementToUpdateTask implements Runnable {
+
+            int x;
+            int y;
+            int z;
+            SearchTask sThread;
+
+            public ZincrementToUpdateTask(int x, int y, int z, SearchTask sThread) {
+                this.x = x;
+                this.sThread = sThread;
+                this.y = y;
+                this.z = z;
+                
+            }
+
+            @Override
+            public void run() {
+                ServerOp.UP.incrementZ(x, y, z);
 
             }
         }
