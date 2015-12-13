@@ -17,6 +17,7 @@ import java.util.logging.LogRecord;
 public class SearchServer {
     
     public static int S = 10;
+    public static int divitionDataFiles = S;
     public static int C = 40;
     public static int M = 5;
     public static int L = 100;

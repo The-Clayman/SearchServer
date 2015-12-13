@@ -21,12 +21,12 @@ public class DataFiles {
 
     int divitionFactor;
     ArrayList<FileLockSet> files;
-    int l;
+  //  int l;
 
     public DataFiles(int divitionFactor, int l) {
         this.divitionFactor = divitionFactor;
         this.files = new ArrayList<FileLockSet>();
-        this.l = l;
+      //  this.l = l;
     }
 
     public int[] query(int x) {
@@ -43,7 +43,7 @@ public class DataFiles {
             file = files.get(fileNum);
             if (file == null) {
                 System.err.println("query(int x): file " + fileNum + " is null");
-                ans[0]=-2;
+                ans[0] = -2;
                 return ans; // -2 means x doesn't exist
 
             }
@@ -57,10 +57,10 @@ public class DataFiles {
                     fillFileJunk(random);
                     fileToAdd = new FileLockSet(random);
                     files.add(fileToAdd); //00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-                    if (i == fileNum){
+                    if (i == fileNum) {
                         fileToAdd.wait = true;// lock reading until new entry will be written
                     }
-                    
+
                 } catch (FileNotFoundException ex) {
                     Logger.getLogger(DataFiles.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -82,11 +82,9 @@ public class DataFiles {
                 if (readY == -1) {// if query doesn't exsist in DB
                     // halt all readers
                     file.wait = true;
-                     ans[0] = -4;
+                    ans[0] = -4;
                     return ans;
-                    }
-                    
-                 else {// send back y
+                } else {// send back y
                     ans[0] = readY;
                     ans[1] = readZ;
                     file.mainLock.notify();// wake up next thread
@@ -127,8 +125,6 @@ public class DataFiles {
                     file.mainLock.notify();// writing complite, release lock for read threads
                 }
 
-               
-
             }
         } catch (IndexOutOfBoundsException e) {
             System.err.println("writeNewEntry(int x, int y): file " + fileNum + " out of bounds");
@@ -140,6 +136,34 @@ public class DataFiles {
             Logger.getLogger(DataFiles.class.getName()).log(Level.SEVERE, null, ex);
         }
 
+    }
+
+    public void writeFromUpdates(int[][] data) {// write all z updates in current file
+        FileLockSet file = null;
+        int fileNum = data[0][0] / divitionFactor;
+        int location = data[0][0] % divitionFactor;
+        int pointer = location * 4 * 3;
+        file = files.get(fileNum);
+        if (file == null) {// if pointer exist, but is null
+
+            System.err.println("writeNewEntry(int x, int y): file " + fileNum + " is null");
+            return;
+        }
+        file.wait = true;// ask to hold other threads
+        synchronized (file.privilegeLock) {
+            synchronized (file.mainLock) {// lock file
+                try {
+                    for (int i = 0; i < data.length; i++) {
+                        file.file.seek(data[i][0] * 4 * 3 + 12);// +12 to skip x,y stright to z
+                        file.file.writeInt(data[i][1]);
+                    }
+                } catch (IOException ex) {
+                    Logger.getLogger(DataFiles.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                file.wait = false;// releasing lock
+                file.mainLock.notify();// writing complite, release lock for read threads
+            }
+        }
     }
 
     public void incrementZ(int x) {

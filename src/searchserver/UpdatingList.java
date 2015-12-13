@@ -5,6 +5,8 @@
  */
 package searchserver;
 
+import java.util.ArrayList;
+import java.util.Map.Entry;
 import java.util.TreeMap;
 
 /**
@@ -12,27 +14,30 @@ import java.util.TreeMap;
  * @author roy
  */
 public class UpdatingList {
-    Lists dbList , cacheList;
+    TreeMap<Integer, YzSet> dbList , cacheList;
+     TreeMap<Integer, Mat> DBunloadList = null;
+     
     int chaceLowZ;
     public UpdatingList(int chaceLowZ){
-        this.dbList = new Lists();
-        this.cacheList = new Lists();
+        this.dbList = new TreeMap<Integer, YzSet>();
+        this.cacheList = new TreeMap<Integer, YzSet>();
         this.chaceLowZ = chaceLowZ;
     }
     public synchronized void incrementZ(int x , int y , int z){
-        yzSet temp = dbList.mapX.get(x);
+        YzSet temp = dbList.get(x);
         int tempZsize = -1;
         if (temp == null){// x does not exsist in dbList add new entry (x,y,z=z)
             tempZsize = z +1;
-            yzSet entryToAdd = new yzSet(y, tempZsize);
-            dbList.mapX.put(x, entryToAdd);
+            YzSet entryToAdd = new YzSet(y, tempZsize);
+            dbList.put(x, entryToAdd);
         }
         else{// x exsists 
-            temp.zAdding++;
-            tempZsize = temp.zAdding;
+            //temp.yzSet.this.z++;
+            temp.setZ(temp.getZ()+1);
+            tempZsize = temp.getZ();
         }
         if (tempZsize > chaceLowZ){
-            cacheList.mapX.put(x, temp);
+            cacheList.put(x, temp);
         }
     }
     public void updateLowZ(int lowZ){
@@ -42,25 +47,36 @@ public class UpdatingList {
         return this.getLowZ();
     }
     public void emptyLists(){
-        this.cacheList.mapX.clear();
-        this.dbList.mapX.clear();
+        DBunloadList = new TreeMap<Integer,Mat>();
+        while (!this.dbList.isEmpty()){
+            Entry temp = this.dbList.firstEntry();
+            int fileNumToInsert =((int) temp.getKey())/SearchServer.divitionDataFiles;
+            Mat mat = DBunloadList.get(fileNumToInsert);
+            if (mat == null){ // mat isn't found, first entry to insert
+                mat = new Mat();
+            }
+            mat.mat.add(temp);
+            this.dbList.remove(temp.getKey());
+        }
+        
+        
+            
+        
+        
+        this.cacheList.clear();
+        this.dbList.clear();
     }
     
 
-    private class Lists {
-            TreeMap<Integer, yzSet> mapX;
-        public Lists() {
-            this.mapX = new TreeMap<Integer, yzSet>();
-            
-        }
+   
+    
+
+    public class Mat{
+        ArrayList <Entry>mat;
+        public Mat(){
+            mat = new ArrayList<Entry>();
+        } 
     }
-    private class yzSet{
-        int y,zAdding;
-        public yzSet(int y , int z){
-            this.y = y;
-            this.zAdding = z;
-        }
-        
-    }
+
     
 }

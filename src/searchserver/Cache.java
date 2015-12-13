@@ -24,8 +24,8 @@ public class Cache {
         tree = new myTree(size);
     }
 
-    public void insert(int x, int y, int z) {
-        tree.insert(x, y, z);
+    public void insert(Entry<Integer,YzSet> entry) {
+        tree.insert(entry);
     }
 
     public int[] QueryX(int x) {
@@ -34,12 +34,12 @@ public class Cache {
 
     private class myTree {
 
-        TreeMap<Integer, set> mapX;
+        TreeMap<Integer, YzSet> mapX;
         TreeMap<Integer, ArrayList<Integer>> mapZ;
         int size;
 
         public myTree(int size) {
-            mapX = new TreeMap<Integer, set>();
+            mapX = new TreeMap<Integer, YzSet>();
             mapZ = new TreeMap<Integer, ArrayList<Integer>>();
             this.size = size;
         }
@@ -48,7 +48,10 @@ public class Cache {
             return this.mapZ.firstKey();
         }
 
-        public void insert(int x, int y, int z) {
+        public void insert(Entry<Integer,YzSet> entry) {
+            int x = entry.getKey();
+            int y = entry.getValue().getY();
+            int z = entry.getValue().getZ();
             if (mapX.size() == size && mapX.get(x) == null) {// if full and a not updating exsiting set
                 if (z <= this.getLowZValue()) {
                     return; // The cache is full, the new entry has z<= from lowest z value in cache. do nothing
@@ -57,7 +60,7 @@ public class Cache {
             }
 
             if (mapX.get(x) == null) {// x does not exsist yet
-                mapX.put(x, new set(y, z));
+                mapX.put(x, new YzSet(y, z));
                 addXtoZ(x, z);
 
             } else {// x exsist, override, update mapZ
@@ -79,6 +82,14 @@ public class Cache {
                 }
             }
 
+        }
+        public void insertTree(TreeMap<Integer, YzSet> list){
+            Entry<Integer,YzSet> entry;
+            while(!list.isEmpty()){
+                entry = list.firstEntry();
+                insert(entry);
+                list.remove(0);
+            }
         }
 
         private void addXtoZ(int x, int z) {
@@ -109,14 +120,14 @@ public class Cache {
         }
 
         private int[] getYbyX(int x) {
-            set returnAns = mapX.get(x);
+            YzSet returnAns = mapX.get(x);
             int[] ans = new int[2];
             if (returnAns == null) {
                 ans[0] = -1;
                 return ans;
             }
-            ans[0] = returnAns.y;
-            ans[1] = returnAns.z;
+            ans[0] = returnAns.getY();
+            ans[1] = returnAns.getZ();
             return ans;
         }
     }
