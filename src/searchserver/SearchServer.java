@@ -23,6 +23,7 @@ public class SearchServer {
     public static int Y = 10;
     public static int W = 1;
     public static int C_num = 1;
+    public static int updatingNum = 10;
     
 
     /**
