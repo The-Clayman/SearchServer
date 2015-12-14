@@ -64,7 +64,7 @@ public class UpdatingList {
             }
             MainLock.notify();
             if (fromDB){
-            this.countUpdates++;
+               this.countUpdates++;
             }
             if (countUpdates == updateRoof) {// initiate updating procedure
                 System.err.println("*********count all updates: " + countAllUpdates + " dbSize: " + dbList.size() + " cache size: " + cacheList.size());

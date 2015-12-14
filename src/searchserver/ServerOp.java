@@ -30,8 +30,8 @@ public class ServerOp {
         cache = new Cache(SearchServer.C);
         s_ThreadPool = new ThreadpoolWork(SearchServer.S);
         r_ThreadPool = new ThreadpoolWork(SearchServer.Y);
-        w_ThreadPool = new ThreadpoolWork(SearchServer.W);
-        c_ThreadPool = new ThreadpoolWork(SearchServer.C_num);
+        w_ThreadPool = new ThreadpoolWork(SearchServer.Read_Thread_Workers_Num);
+        c_ThreadPool = new ThreadpoolWork(SearchServer.Cache_workers_num);
         c_updatePool = new ThreadpoolWork(SearchServer.updatingWorkNum);
         UP = new UpdatingList(SearchServer.M ,SearchServer.upDatingroof);
         ss = new ServerSock();

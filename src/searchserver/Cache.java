@@ -18,10 +18,10 @@ import java.util.logging.Logger;
 public class Cache {
 
     int sizeMax;
-    myTree tree;
+    private myTree tree;
     private int lowZ = 0;
     boolean wait = false;
-    Object mainLock;
+    private Object mainLock;
 
     public Cache(int size) {
         this.sizeMax = size;
@@ -37,7 +37,7 @@ public class Cache {
         this.lowZ = tree.getLowZValue();
     }
 
-    public void insert(Entry<Integer, YzSet> entry) {
+    private void insert(Entry<Integer, YzSet> entry) {
         tree.insert(entry);
     }
 
@@ -68,9 +68,9 @@ public class Cache {
 
     private class myTree {
 
-        TreeMap<Integer, YzSet> mapX;
-        TreeMap<Integer, ArrayList<Integer>> mapZ;
-        int size;
+        private TreeMap<Integer, YzSet> mapX;
+        private TreeMap<Integer, ArrayList<Integer>> mapZ;
+        private int size;
 
         public myTree(int size) {
             mapX = new TreeMap<Integer, YzSet>();
@@ -78,17 +78,25 @@ public class Cache {
             this.size = size;
         }
 
-        public int getLowZValue() {
+        private int getLowZValue() {
             if (mapZ.isEmpty()) {
                 return 0;
             }
             return this.mapZ.firstKey();
         }
 
-        public void insert(Entry<Integer, YzSet> entry) {
-            int x = entry.getKey();
-            int y = entry.getValue().getY();
-            int z = entry.getValue().getZ();
+        private void insert(Entry<Integer, YzSet> entry) {
+            int x = -1;
+            int y = -1;
+            int z = -1;
+            try{
+            x = entry.getKey();
+            y = entry.getValue().getY();
+            z = entry.getValue().getZ();
+            }
+            catch(Exception e){// parse didn't seccede, return
+                return;
+            }
             if (mapX.size() == size && mapX.get(x) == null) {// if full and a not updating exsiting set
                 if (z <= this.getLowZValue()) {
                     return; // The cache is full, the new entry has z<= from lowest z value in cache. do nothing
@@ -121,7 +129,7 @@ public class Cache {
 
         }
 
-        public void insertTree(TreeMap<Integer, YzSet> list) {
+        private void insertTree(TreeMap<Integer, YzSet> list) {
             Entry<Integer, YzSet> entry;
             while (!list.isEmpty()) {
                 entry = list.firstEntry();
