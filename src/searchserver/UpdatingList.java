@@ -16,6 +16,7 @@ import java.util.TreeMap;
 public class UpdatingList {
     TreeMap<Integer, YzSet> dbList , cacheList;
      TreeMap<Integer, Mat> DBunloadList = null;
+     TreeMap<Integer, YzSet> chachUpdateList = null;
      
     int chaceLowZ;
     public UpdatingList(int chaceLowZ){
@@ -49,7 +50,7 @@ public class UpdatingList {
     public void emptyLists(){
         DBunloadList = new TreeMap<Integer,Mat>();
         while (!this.dbList.isEmpty()){
-            Entry temp = this.dbList.firstEntry();
+            Entry <Integer, YzSet>temp = this.dbList.firstEntry();
             int fileNumToInsert =((int) temp.getKey())/SearchServer.divitionDataFiles;
             Mat mat = DBunloadList.get(fileNumToInsert);
             if (mat == null){ // mat isn't found, first entry to insert
@@ -58,12 +59,9 @@ public class UpdatingList {
             mat.mat.add(temp);
             this.dbList.remove(temp.getKey());
         }
-        
-        
-            
-        
-        
-        this.cacheList.clear();
+        chachUpdateList = cacheList;
+        cacheList = new TreeMap<Integer, YzSet>();
+     //   this.cacheList.clear();
         this.dbList.clear();
     }
     
@@ -72,9 +70,9 @@ public class UpdatingList {
     
 
     public class Mat{
-        ArrayList <Entry>mat;
+        ArrayList <Entry<Integer, YzSet>>mat;
         public Mat(){
-            mat = new ArrayList<Entry>();
+            mat = new ArrayList<Entry<Integer, YzSet>>();
         } 
     }
 

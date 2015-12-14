@@ -11,11 +11,13 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.TreeMap;
 import java.util.Vector;
 import java.util.concurrent.CountDownLatch;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import static searchserver.ServerOp.c_updatePool;
+import searchserver.UpdatingList.Mat;
 
 /**
  *
@@ -266,27 +268,31 @@ class ServerSock implements Runnable {
             }
         }
 
-        public class writeUpdatesToDB implements Runnable{
+        public class writeUpdatesToDBandCache implements Runnable {
 
             int x;
             int z;
+            TreeMap<Integer, Mat> dataToUpdateDB;
+            TreeMap<Integer, Mat> dataToUpdateCache;
             boolean isPrivilege;
             SearchTask sThread;
 
-            public writeUpdatesToDB(int x, int z, SearchTask sThread, boolean isPrivilege) {
+            public writeUpdatesToDBandCache(int x, int z, SearchTask sThread, boolean isPrivilege, TreeMap<Integer, Mat> dataToUpdateDB , TreeMap<Integer, YzSet> dataToUpdateCache) {
                 this.x = x;
                 this.sThread = sThread;
                 this.z = z;
                 this.isPrivilege = isPrivilege;
+                this.dataToUpdateDB = this.dataToUpdateDB;
             }
 
             @Override
             public void run() {
-                if (z == -5) {// increment Z
-                    ServerOp.df.incrementZ(x);
-                    return;
-                }// write new qwery to database
-          //      ServerOp.df.writeNewEntry(x, y);
+                while (!dataToUpdateDB.isEmpty()) {// updating db;
+                    int fileNum = dataToUpdateDB.firstEntry().getValue().mat.get(0).getKey()/SearchServer.divitionDataFiles;
+                    ServerOp.df.lockFile(fileNum);// locking file
+                    ServerOp.df.writeFromUpdates(dataToUpdateDB.firstEntry().getValue());
+                    dataToUpdateDB.remove(0);
+                }
 
             }
         }

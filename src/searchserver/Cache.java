@@ -8,6 +8,8 @@ package searchserver;
 import java.util.ArrayList;
 import java.util.Map.Entry;
 import java.util.TreeMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -18,10 +20,15 @@ public class Cache {
     int sizeMax;
     myTree tree;
     int lowZ = 0;
+    Object MainLock;
+    Object PrivilegeLock;
+    boolean wait = false;
 
     public Cache(int size) {
         this.sizeMax = size;
         tree = new myTree(size);
+        this.MainLock = new Object();
+        this.PrivilegeLock = new Object();
     }
 
     public void insert(Entry<Integer,YzSet> entry) {
@@ -29,7 +36,28 @@ public class Cache {
     }
 
     public int[] QueryX(int x) {
+        synchronized(this.MainLock){
+            while(wait){
+                try {
+                    this.MainLock.wait();
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(Cache.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+            this.MainLock.notify();
         return tree.getYbyX(x);
+        }
+    }
+    public void insertTree(TreeMap<Integer, YzSet> list){
+        synchronized(this.PrivilegeLock){
+            synchronized(this.MainLock){
+            this.wait = true;// shutdown cache;
+            this.tree.insertTree(list);
+            this.wait = false;// get cache back online
+            this.MainLock.notify();
+            }
+        }
+        
     }
 
     private class myTree {
@@ -132,26 +160,6 @@ public class Cache {
         }
     }
 
-    private class set {
 
-        private int y, z;
-
-        public set(int y, int z) {
-            this.y = y;
-            this.z = z;
-        }
-
-        public int getY() {
-            return y;
-        }
-
-        public int getZ() {
-            return z;
-        }
-
-        public void setZ(int z) {
-            this.z = z;
-        }
-    }
 
 }
