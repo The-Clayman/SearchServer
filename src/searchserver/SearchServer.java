@@ -19,12 +19,13 @@ public class SearchServer {
     public static int S = 10;
     public static int divitionDataFiles = S;
     public static int C = 40;
-    public static int M = 5;
+    public static int M = 30;
     public static int L = 100;
     public static int Y = 10;
-    public static int W = 1;
-    public static int C_num = 1;
-    public static int updatingNum = 10;
+    public static int W = 5;
+    public static int C_num = 5;
+    public static int updatingWorkNum = 10;
+    public static int upDatingroof = M*2;
     
 
     /**

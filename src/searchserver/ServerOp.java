@@ -10,7 +10,9 @@ package searchserver;
  * @author roy
  */
 public class ServerOp {
-    ServerSock ss;
+
+    
+    public static ServerSock ss;
     public static ThreadpoolWork s_ThreadPool;
     public static ThreadpoolWork w_ThreadPool;
     public static ThreadpoolWork r_ThreadPool;
@@ -30,8 +32,8 @@ public class ServerOp {
         r_ThreadPool = new ThreadpoolWork(SearchServer.Y);
         w_ThreadPool = new ThreadpoolWork(SearchServer.W);
         c_ThreadPool = new ThreadpoolWork(SearchServer.C_num);
-        c_updatePool = new ThreadpoolWork(SearchServer.updatingNum);
-        UP = new UpdatingList(SearchServer.M);
+        c_updatePool = new ThreadpoolWork(SearchServer.updatingWorkNum);
+        UP = new UpdatingList(SearchServer.M ,SearchServer.upDatingroof);
         ss = new ServerSock();
         (new Thread(ss)).start();
     }

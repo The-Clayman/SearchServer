@@ -19,45 +19,51 @@ public class Cache {
 
     int sizeMax;
     myTree tree;
-    int lowZ = 0;
-    Object MainLock;
-    Object PrivilegeLock;
+    private int lowZ = 0;
     boolean wait = false;
+    Object mainLock;
 
     public Cache(int size) {
         this.sizeMax = size;
         tree = new myTree(size);
-        this.MainLock = new Object();
-        this.PrivilegeLock = new Object();
+        this.mainLock = new Object();
     }
 
-    public void insert(Entry<Integer,YzSet> entry) {
+    public int getLowZ() {
+        return this.lowZ;
+    }
+
+    private void setLowZ() {
+        this.lowZ = tree.getLowZValue();
+    }
+
+    public void insert(Entry<Integer, YzSet> entry) {
         tree.insert(entry);
     }
 
     public int[] QueryX(int x) {
-        synchronized(this.MainLock){
-            while(wait){
-                try {
-                    this.MainLock.wait();
-                } catch (InterruptedException ex) {
-                    Logger.getLogger(Cache.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-            this.MainLock.notify();
-        return tree.getYbyX(x);
+        synchronized(this.mainLock){
+        int ans[];
+        if (wait) {
+            ans = new int[2];
+            ans[0] = -1;
+            return ans;
+        }
+        ans = tree.getYbyX(x);
+        mainLock.notify();
+        return ans;
         }
     }
-    public void insertTree(TreeMap<Integer, YzSet> list){
-        synchronized(this.PrivilegeLock){
-            synchronized(this.MainLock){
-            this.wait = true;// shutdown cache;
-            this.tree.insertTree(list);
-            this.wait = false;// get cache back online
-            this.MainLock.notify();
-            }
+
+    public synchronized void insertTree(TreeMap<Integer, YzSet> list) {
+        synchronized(this.mainLock){
+        this.wait = true;// shutdown cache;
+        this.tree.insertTree(list);
+        setLowZ();
+        this.wait = false;// get cache back online
+        this.mainLock.notify();
         }
-        
+
     }
 
     private class myTree {
@@ -73,10 +79,13 @@ public class Cache {
         }
 
         public int getLowZValue() {
+            if (mapZ.isEmpty()) {
+                return 0;
+            }
             return this.mapZ.firstKey();
         }
 
-        public void insert(Entry<Integer,YzSet> entry) {
+        public void insert(Entry<Integer, YzSet> entry) {
             int x = entry.getKey();
             int y = entry.getValue().getY();
             int z = entry.getValue().getZ();
@@ -111,13 +120,16 @@ public class Cache {
             }
 
         }
-        public void insertTree(TreeMap<Integer, YzSet> list){
-            Entry<Integer,YzSet> entry;
-            while(!list.isEmpty()){
+
+        public void insertTree(TreeMap<Integer, YzSet> list) {
+            Entry<Integer, YzSet> entry;
+            while (!list.isEmpty()) {
                 entry = list.firstEntry();
                 insert(entry);
-                list.remove(0);
+                list.remove(entry.getKey());
             }
+            entry = null;
+
         }
 
         private void addXtoZ(int x, int z) {
@@ -159,7 +171,5 @@ public class Cache {
             return ans;
         }
     }
-
-
 
 }

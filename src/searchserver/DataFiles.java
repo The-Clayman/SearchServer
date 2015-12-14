@@ -143,7 +143,7 @@ public class DataFiles {
     public void writeFromUpdates(Mat data) {// write all z updates in current file
         FileLockSet file = null;
         int fileNum = data.mat.get(0).getKey() / divitionFactor;
-       // int location = data.mat.get(0).getKey() % divitionFactor;
+        // int location = data.mat.get(0).getKey() % divitionFactor;
         //  int pointer = location * 4 * 3;
         file = files.get(fileNum);
         if (file == null) {// if pointer exist, but is null
@@ -151,14 +151,18 @@ public class DataFiles {
             System.err.println("writeNewEntry(int x, int y): file " + fileNum + " is null");
             return;
         }
-      //  file.wait = true;// ask to hold other threads
+        //  file.wait = true;// ask to hold other threads
         synchronized (file.privilegeLock) {
             synchronized (file.mainLock) {// lock file, sent task needs to file.lock
                 try {
                     for (int i = 0; i < data.mat.size(); i++) {
                         Entry<Integer, YzSet> entry = data.mat.get(i);
-                        file.file.seek((entry.getKey() % divitionFactor) * 4 * 3 + 12);// +12 to skip x,y stright to z
-                        file.file.writeInt(entry.getValue().getZ());
+                        int zToWrite = entry.getValue().getZ();
+                        int location = ((((int) entry.getKey()) % divitionFactor) * 4 * 3);
+                        file.file.seek(location);// +6 to skip x,y stright to z
+                        file.file.readInt();
+                        file.file.readInt();
+                        file.file.writeInt(zToWrite);
                     }
                 } catch (IOException ex) {
                     Logger.getLogger(DataFiles.class.getName()).log(Level.SEVERE, null, ex);

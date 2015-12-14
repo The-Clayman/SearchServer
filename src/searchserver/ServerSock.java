@@ -5,6 +5,7 @@
  */
 package searchserver;
 
+import com.sun.jmx.snmp.tasks.Task;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -152,7 +153,7 @@ class ServerSock implements Runnable {
                             //ServerOp.UP.incrementZ(x, Yans, Zans);
 
                             // notify cach; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                            ServerOp.c_updatePool.enqueue(new ZincrementToUpdateTask(x, Yans, Zans, this));
+                            ServerOp.c_updatePool.enqueue(new ZincrementToUpdateTask(x, Yans, Zans,false, this));
                             return;
                         }
                     } catch (InterruptedException ex) {
@@ -178,7 +179,7 @@ class ServerSock implements Runnable {
                         write(new Integer(generatedY).toString());// send Generated Y to client;
                         ServerOp.w_ThreadPool.enqueue(new writeDBTask(x, generatedY, 1, this, true));// write generated Y the DB
                         // notify cach; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                        ServerOp.c_updatePool.enqueue(new ZincrementToUpdateTask(x, generatedY, zDb, this));
+                       // ServerOp.c_updatePool.enqueue(new ZincrementToUpdateTask(x, generatedY, zDb, this));
 
                         return;
                     }
@@ -189,7 +190,7 @@ class ServerSock implements Runnable {
 
                         // ServerOp.w_ThreadPool.enqueue(new writeDBTask(x, returnedY, -5, this , null));//  incremetZ
                         // notify cach; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                        ServerOp.c_updatePool.enqueue(new ZincrementToUpdateTask(x, yDb, zDb, this));
+                        ServerOp.c_updatePool.enqueue(new ZincrementToUpdateTask(x, yDb, zDb,true, this));
                         return;
                     }
                     // y not found, generate y, send it back;
@@ -268,53 +269,26 @@ class ServerSock implements Runnable {
             }
         }
 
-        public class writeUpdatesToDBandCache implements Runnable {
-
-            int x;
-            int z;
-            TreeMap<Integer, Mat> dataToUpdateDB;
-            TreeMap<Integer, Mat> dataToUpdateCache;
-            boolean isPrivilege;
-            SearchTask sThread;
-
-            public writeUpdatesToDBandCache(int x, int z, SearchTask sThread, boolean isPrivilege, TreeMap<Integer, Mat> dataToUpdateDB , TreeMap<Integer, YzSet> dataToUpdateCache) {
-                this.x = x;
-                this.sThread = sThread;
-                this.z = z;
-                this.isPrivilege = isPrivilege;
-                this.dataToUpdateDB = this.dataToUpdateDB;
-            }
-
-            @Override
-            public void run() {
-                while (!dataToUpdateDB.isEmpty()) {// updating db;
-                    int fileNum = dataToUpdateDB.firstEntry().getValue().mat.get(0).getKey()/SearchServer.divitionDataFiles;
-                    ServerOp.df.lockFile(fileNum);// locking file
-                    ServerOp.df.writeFromUpdates(dataToUpdateDB.firstEntry().getValue());
-                    dataToUpdateDB.remove(0);
-                }
-
-            }
-        }
-
         public class ZincrementToUpdateTask implements Runnable {
 
             int x;
             int y;
             int z;
+            boolean fromDB;
             SearchTask sThread;
 
-            public ZincrementToUpdateTask(int x, int y, int z, SearchTask sThread) {
+            public ZincrementToUpdateTask(int x, int y, int z,boolean fromDB, SearchTask sThread) {
                 this.x = x;
                 this.sThread = sThread;
                 this.y = y;
                 this.z = z;
+                this.fromDB = fromDB;
 
             }
 
             @Override
             public void run() {
-                ServerOp.UP.incrementZ(x, y, z);
+                ServerOp.UP.incrementZ(x, y, z,fromDB);
 
             }
         }
@@ -323,6 +297,44 @@ class ServerSock implements Runnable {
             return (int) (Math.random() * (SearchServer.L - 1)) + 1;
         }
 
+    }
+
+    public void initiateUpdates() {
+        ServerOp.c_updatePool.enqueue(new writeUpdatesToDBandCache());
+    }
+
+    public class writeUpdatesToDBandCache implements Runnable {
+
+        TreeMap<Integer, Mat> dataToUpdateDB;
+        TreeMap<Integer, YzSet> dataToUpdateCache;
+        UpdatingList localUP;
+
+        public writeUpdatesToDBandCache() {
+            this.localUP = ServerOp.UP;
+        }
+
+        @Override
+        public void run() {
+            
+            
+            ServerOp.UP.emptyLists(this);
+            if (!dataToUpdateCache.isEmpty()) {
+                ServerOp.cache.insertTree(dataToUpdateCache);// locking and unlocking is done by cache.
+            }
+            dataToUpdateCache = null;
+            while (!dataToUpdateDB.isEmpty()) {// updating db;
+                Integer key = dataToUpdateDB.firstEntry().getKey();
+                int fileNum = dataToUpdateDB.firstEntry().getValue().mat.get(0).getKey() / SearchServer.divitionDataFiles;
+                ServerOp.df.lockFile(fileNum);// locking file
+                ServerOp.df.writeFromUpdates(dataToUpdateDB.firstEntry().getValue());
+                dataToUpdateDB.remove(key);
+            }
+            dataToUpdateDB = null;
+            System.gc();
+                    
+            
+
+        }
     }
 
 }
