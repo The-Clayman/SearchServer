@@ -9,9 +9,11 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
+import java.util.Map.Entry;
 import java.util.concurrent.CountDownLatch;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import searchserver.UpdatingList.Mat;
 
 /**
  *
@@ -20,13 +22,13 @@ import java.util.logging.Logger;
 public class DataFiles {
 
     int divitionFactor;
-    ArrayList<FileLockSet> files;
-  //  int l;
+    private ArrayList<FileLockSet> files;
+    //  int l;
 
     public DataFiles(int divitionFactor, int l) {
         this.divitionFactor = divitionFactor;
         this.files = new ArrayList<FileLockSet>();
-      //  this.l = l;
+        //  this.l = l;
     }
 
     public int[] query(int x) {
@@ -138,24 +140,29 @@ public class DataFiles {
 
     }
 
-    public void writeFromUpdates(int[][] data) {// write all z updates in current file
+    public void writeFromUpdates(Mat data) {// write all z updates in current file
         FileLockSet file = null;
-        int fileNum = data[0][0] / divitionFactor;
-        int location = data[0][0] % divitionFactor;
-        int pointer = location * 4 * 3;
+        int fileNum = data.mat.get(0).getKey() / divitionFactor;
+        // int location = data.mat.get(0).getKey() % divitionFactor;
+        //  int pointer = location * 4 * 3;
         file = files.get(fileNum);
         if (file == null) {// if pointer exist, but is null
 
             System.err.println("writeNewEntry(int x, int y): file " + fileNum + " is null");
             return;
         }
-        file.wait = true;// ask to hold other threads
+        //  file.wait = true;// ask to hold other threads
         synchronized (file.privilegeLock) {
-            synchronized (file.mainLock) {// lock file
+            synchronized (file.mainLock) {// lock file, sent task needs to file.lock
                 try {
-                    for (int i = 0; i < data.length; i++) {
-                        file.file.seek(data[i][0] * 4 * 3 + 12);// +12 to skip x,y stright to z
-                        file.file.writeInt(data[i][1]);
+                    for (int i = 0; i < data.mat.size(); i++) {
+                        Entry<Integer, YzSet> entry = data.mat.get(i);
+                        int zToWrite = entry.getValue().getZ();
+                        int location = ((((int) entry.getKey()) % divitionFactor) * 4 * 3);
+                        file.file.seek(location);// +6 to skip x,y stright to z
+                        file.file.readInt();
+                        file.file.readInt();
+                        file.file.writeInt(zToWrite);
                     }
                 } catch (IOException ex) {
                     Logger.getLogger(DataFiles.class.getName()).log(Level.SEVERE, null, ex);
@@ -236,6 +243,10 @@ public class DataFiles {
             wait = false;
             //      latch = new CountDownLatch(1);
         }
+    }
+
+    public void lockFile(int fileNum) {
+        files.get(fileNum).wait = true;
     }
 
 }

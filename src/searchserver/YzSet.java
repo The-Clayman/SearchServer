@@ -13,7 +13,7 @@ import java.util.TreeMap;
  */
 public class YzSet {
 
-    private int y, z;
+    public int y, z;
 
     public YzSet(int y, int z) {
         this.y = y;

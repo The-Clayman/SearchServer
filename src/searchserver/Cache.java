@@ -8,6 +8,8 @@ package searchserver;
 import java.util.ArrayList;
 import java.util.Map.Entry;
 import java.util.TreeMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -16,27 +18,59 @@ import java.util.TreeMap;
 public class Cache {
 
     int sizeMax;
-    myTree tree;
-    int lowZ = 0;
+    private myTree tree;
+    private int lowZ = 0;
+    boolean wait = false;
+    private Object mainLock;
 
     public Cache(int size) {
         this.sizeMax = size;
         tree = new myTree(size);
+        this.mainLock = new Object();
     }
 
-    public void insert(Entry<Integer,YzSet> entry) {
+    public int getLowZ() {
+        return this.lowZ;
+    }
+
+    private void setLowZ() {
+        this.lowZ = tree.getLowZValue();
+    }
+
+    private void insert(Entry<Integer, YzSet> entry) {
         tree.insert(entry);
     }
 
     public int[] QueryX(int x) {
-        return tree.getYbyX(x);
+        synchronized(this.mainLock){
+        int ans[];
+        if (wait) {
+            ans = new int[2];
+            ans[0] = -1;
+            return ans;
+        }
+        ans = tree.getYbyX(x);
+        mainLock.notify();
+        return ans;
+        }
+    }
+
+    public synchronized void insertTree(TreeMap<Integer, YzSet> list) {
+        synchronized(this.mainLock){
+        this.wait = true;// shutdown cache;
+        this.tree.insertTree(list);
+        setLowZ();
+        this.wait = false;// get cache back online
+        this.mainLock.notify();
+        }
+
     }
 
     private class myTree {
 
-        TreeMap<Integer, YzSet> mapX;
-        TreeMap<Integer, ArrayList<Integer>> mapZ;
-        int size;
+        private TreeMap<Integer, YzSet> mapX;
+        private TreeMap<Integer, ArrayList<Integer>> mapZ;
+        private int size;
 
         public myTree(int size) {
             mapX = new TreeMap<Integer, YzSet>();
@@ -44,14 +78,25 @@ public class Cache {
             this.size = size;
         }
 
-        public int getLowZValue() {
+        private int getLowZValue() {
+            if (mapZ.isEmpty()) {
+                return 0;
+            }
             return this.mapZ.firstKey();
         }
 
-        public void insert(Entry<Integer,YzSet> entry) {
-            int x = entry.getKey();
-            int y = entry.getValue().getY();
-            int z = entry.getValue().getZ();
+        private void insert(Entry<Integer, YzSet> entry) {
+            int x = -1;
+            int y = -1;
+            int z = -1;
+            try{
+            x = entry.getKey();
+            y = entry.getValue().getY();
+            z = entry.getValue().getZ();
+            }
+            catch(Exception e){// parse didn't seccede, return
+                return;
+            }
             if (mapX.size() == size && mapX.get(x) == null) {// if full and a not updating exsiting set
                 if (z <= this.getLowZValue()) {
                     return; // The cache is full, the new entry has z<= from lowest z value in cache. do nothing
@@ -83,13 +128,16 @@ public class Cache {
             }
 
         }
-        public void insertTree(TreeMap<Integer, YzSet> list){
-            Entry<Integer,YzSet> entry;
-            while(!list.isEmpty()){
+
+        private void insertTree(TreeMap<Integer, YzSet> list) {
+            Entry<Integer, YzSet> entry;
+            while (!list.isEmpty()) {
                 entry = list.firstEntry();
                 insert(entry);
-                list.remove(0);
+                list.remove(entry.getKey());
             }
+            entry = null;
+
         }
 
         private void addXtoZ(int x, int z) {
@@ -129,28 +177,6 @@ public class Cache {
             ans[0] = returnAns.getY();
             ans[1] = returnAns.getZ();
             return ans;
-        }
-    }
-
-    private class set {
-
-        private int y, z;
-
-        public set(int y, int z) {
-            this.y = y;
-            this.z = z;
-        }
-
-        public int getY() {
-            return y;
-        }
-
-        public int getZ() {
-            return z;
-        }
-
-        public void setZ(int z) {
-            this.z = z;
         }
     }
 
