@@ -29,7 +29,8 @@ public class SearchServer {
     public static int updatingWorkNum = 10;
     public static int upDatingroof = C*M;
     public static boolean debug = false;
-    public static boolean Statistics = true;
+    public static boolean Statistics = false;
+    public static boolean forTest = true;
     
 
     /**

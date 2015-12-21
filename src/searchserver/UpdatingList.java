@@ -11,7 +11,6 @@ import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import searchserver.ServerSock.writeUpdatesToDBandCache;
-import sun.security.pkcs11.Secmod;
 
 /**
  *
@@ -55,7 +54,6 @@ public class UpdatingList {
                 dbList.put(x, entryToAdd);
                 temp = dbList.get(x);
             } else {// x exsists 
-                //temp.yzSet.this.z++;
                 temp.z++;
                 tempZsize = temp.getZ();
             }
@@ -67,7 +65,9 @@ public class UpdatingList {
                this.countUpdates++;
             }
             if (countUpdates == updateRoof) {// initiate updating procedure
+                if (!SearchServer.forTest){
                 System.err.println("*********count all updates: " + countAllUpdates + " dbSize: " + dbList.size() + " cache size: " + cacheList.size());
+                }
                 //    emptyLists();
 
                 ServerOp.ss.initiateUpdates();
@@ -82,15 +82,6 @@ public class UpdatingList {
         this.chaceLowZ = lowZ;
     }
 
-//    public void Unlock() { // for chache to unlock UP after apdates.
-//        synchronized (PrivilegeLock) {
-//            synchronized (MainLock) {
-//                this.wait = false;
-//                this.cacheList = new TreeMap<Integer, YzSet>();// asign new tree
-//                this.MainLock.notify();
-//            }
-//        }
-//    }
     public int getLowZ() {
         return this.getLowZ();
     }

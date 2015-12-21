@@ -190,7 +190,7 @@ class ServerSock implements Runnable {
                             // write z++ to data base; chache will updated as well later;  
                             //ServerOp.UP.incrementZ(x, Yans, Zans);
 
-                            // notify cach; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                            // notify cach;
                             ServerOp.c_updatePool.enqueue(new ZincrementToUpdateTask(x, Yans, Zans, false));
                             return;
                         }
@@ -219,8 +219,7 @@ class ServerSock implements Runnable {
                             System.out.println("client "+this.name+": New X:" + x + "=" + generatedY);
                         }
                         ServerOp.w_ThreadPool.enqueue(new writeDBTask(x, generatedY, 1, true));// write generated Y the DB
-                        // notify cach; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                        // ServerOp.c_updatePool.enqueue(new ZincrementToUpdateTask(x, generatedY, zDb, this));
+                        // notify cach; 
                         if (SearchServer.Statistics) {
                             allStatisitc++;
                             newDBStatisitcs++;
@@ -237,7 +236,7 @@ class ServerSock implements Runnable {
                         // write z++ to data base;
 
                         // ServerOp.w_ThreadPool.enqueue(new writeDBTask(x, returnedY, -5, this , null));//  incremetZ
-                        // notify cach; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                        // notify cach; 
                         ServerOp.c_updatePool.enqueue(new ZincrementToUpdateTask(x, yDb, zDb, true));
                         if (SearchServer.Statistics) {
                             allStatisitc++;
